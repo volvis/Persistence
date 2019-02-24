@@ -12,10 +12,21 @@ namespace Aijai.Persistence
         {
             serializedObject.Update();
 
-            if (Application.isPlaying && GUILayout.Button("Trigger state"))
+            if (Application.isPlaying)
             {
-                var a = target as PersistentTriggerState;
-                a.TriggerState();
+                if (GUILayout.Button("Trigger state"))
+                {
+                    var a = target as PersistentTriggerState;
+                    a.TriggerState();
+                }
+                if (GUILayout.Button("Create checkpoint"))
+                {
+                    PersistentTriggerState.CreateCheckpoint();
+                }
+                if (PersistentTriggerState.HasCheckpoint() && GUILayout.Button("Restore checkpoint"))
+                {
+                    PersistentTriggerState.ReturnCheckpoint();
+                }
             }
 
             EditorGUILayout.HelpBox("Save Index: " + serializedObject.FindProperty("m_sceneIndex").intValue, MessageType.Info);

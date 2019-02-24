@@ -23,7 +23,7 @@ namespace Aijai.Persistence
             SetState(this, true);
         }
 
-        private void OnEnable()
+        protected virtual void OnEnable()
         {
             if (GetState(this))
                 OnTriggeredBefore.Invoke();
@@ -44,6 +44,36 @@ namespace Aijai.Persistence
     public partial class PersistentTriggerState
     {
         static Dictionary<int, HashSet<int>> Memory = new Dictionary<int, HashSet<int>>();
+        static MemoryStream Checkpoint = new MemoryStream();
+
+        public static bool HasCheckpoint() { return Checkpoint.Length != 0; }
+        
+        public static void CreateCheckpoint()
+        {
+            BinaryWriter writer = new BinaryWriter(Checkpoint);
+            try
+            {
+                WriteMemory(writer);
+            }
+            finally
+            {
+                writer.Flush();
+                Checkpoint.Position = 0;
+            }
+        }
+
+        public static void ReturnCheckpoint()
+        {
+            BinaryReader reader = new BinaryReader(Checkpoint);
+            try
+            {
+                ReadMemory(reader);
+            }
+            finally
+            {
+                Checkpoint.Position = 0;
+            }
+        }
 
         public static bool GetState(PersistentTriggerState obj)
         {
@@ -85,6 +115,9 @@ namespace Aijai.Persistence
 
         public static void WriteMemory(BinaryWriter writer)
         {
+            // Reduce memory
+            Memory = Memory.Where(x => Memory[x.Key].Count > 0).ToDictionary(t => t.Key, t => t.Value);
+
             writer.Write(Memory.Count);
             foreach (var key in Memory.Keys)
             {
