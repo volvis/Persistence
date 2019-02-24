@@ -1,0 +1,7 @@
+{
+    "name": "org.aijai.persistence",
+    "displayName": "Aijai Persistence",
+    "version": "0.0.1",
+    "unity": "2018.1",
+    "description": "Test package"
+}

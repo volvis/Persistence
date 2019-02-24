@@ -1,0 +1,14 @@
+{
+    "name": "org.aijai.persistence.Editor",
+    "references": [
+        "org.aijai.Persistence"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": []
+}
