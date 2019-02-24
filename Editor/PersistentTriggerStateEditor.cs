@@ -37,12 +37,14 @@ namespace Aijai.Persistence
                 EditorGUILayout.HelpBox(string.Format("Hash conflict detected with {0}.\nRename scene to fix.", conflict), MessageType.Error);
             }
 
+            var pts = target as PersistentTriggerState;
+
             if (Application.isPlaying)
             {
                 if (GUILayout.Button("Trigger state"))
                 {
-                    var a = target as PersistentTriggerState;
-                    a.TriggerState();
+                    
+                    pts.TriggerState();
                 }
                 if (GUILayout.Button("Create checkpoint"))
                 {
@@ -54,10 +56,17 @@ namespace Aijai.Persistence
                 }
             }
 
-            EditorGUILayout.HelpBox("Save Index: " + serializedObject.FindProperty("m_sceneIndex").intValue, MessageType.Info);
+            string debug = string.Format("Scene Index: {0}\nSave Index: {1}", new PropertyName(pts.gameObject.scene.name).GetHashCode(), serializedObject.FindProperty("m_saveIndex").intValue);
+
+            EditorGUILayout.HelpBox(debug, MessageType.Info);
 
             EditorGUILayout.PropertyField(serializedObject.FindProperty("OnTrigger"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("OnTriggeredBefore"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("m_respawn"));
+
+            var prop = serializedObject.FindProperty("m_respawn");
+            prop.intValue = EditorGUILayout.IntSlider(prop.intValue, 0, 6);
+            
 
             serializedObject.ApplyModifiedProperties();
         }

@@ -13,8 +13,10 @@ namespace Aijai.Persistence
         
         [SerializeField] UnityEvent OnTriggeredBefore;
         
-        [SerializeField] internal int m_sceneIndex = 0;
-        public int SceneIndex { get { return m_sceneIndex; } }
+        [SerializeField] internal int m_saveIndex = 0;
+        public int SceneIndex { get { return m_saveIndex; } }
+
+        [SerializeField] int m_respawn;
 
         [ContextMenu("Debug trigger")]
         public void TriggerState()
@@ -25,8 +27,45 @@ namespace Aijai.Persistence
 
         protected virtual void OnEnable()
         {
+            var sceneID = new PropertyName(this.gameObject.scene.name).GetHashCode();
+            if (SceneHistory.First == null || SceneHistory.First.Value != sceneID)
+            {
+                SceneHistory.AddFirst(sceneID);
+                if (SceneHistory.Count > 6)
+                    SceneHistory.RemoveLast();
+            }
+
+            
+            
             if (GetState(this))
-                OnTriggeredBefore.Invoke();
+            {
+                if (m_respawn > 0)
+                {
+                    var head = SceneHistory.First.Next;
+                    int steps = 0;
+                    while(head != null)
+                    {
+                        if (head.Value == sceneID)
+                            break;
+                        steps++;
+                        head = head.Next;
+                    }
+
+                    if (steps > m_respawn)
+                    {
+                        SetState(this, false);
+                    }
+                    else
+                    {
+                        OnTriggeredBefore.Invoke();
+                    }
+                }
+                else
+                {
+                    OnTriggeredBefore.Invoke();
+                }
+            }
+                
         }
 
         private void OnValidate()
@@ -34,17 +73,26 @@ namespace Aijai.Persistence
             int[] reservedIndices = (from pts in FindObjectsOfType<PersistentTriggerState>() where (pts != this && pts.gameObject.scene == this.gameObject.scene) select pts.SceneIndex).ToArray();
             if (reservedIndices.Contains(SceneIndex))
             {
-                m_sceneIndex = 0;
+                m_saveIndex = 0;
                 while (reservedIndices.Contains(SceneIndex))
-                    m_sceneIndex++;
+                    m_saveIndex++;
             }
         }
     }
 
     public partial class PersistentTriggerState
     {
-        static Dictionary<int, HashSet<int>> Memory = new Dictionary<int, HashSet<int>>();
-        static MemoryStream Checkpoint = new MemoryStream();
+        static Dictionary<int, HashSet<int>> Memory;
+        static LinkedList<int> SceneHistory;
+        static MemoryStream Checkpoint;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void Initialise()
+        {
+            Memory = new Dictionary<int, HashSet<int>>();
+            SceneHistory = new LinkedList<int>();
+            Checkpoint = new MemoryStream();
+        }
 
         public static bool HasCheckpoint() { return Checkpoint.Length != 0; }
         
@@ -77,7 +125,7 @@ namespace Aijai.Persistence
 
         public static bool GetState(PersistentTriggerState obj)
         {
-            return GetState(new PropertyName(obj.gameObject.scene.name).GetHashCode(), obj.m_sceneIndex);
+            return GetState(new PropertyName(obj.gameObject.scene.name).GetHashCode(), obj.m_saveIndex);
         }
 
         public static bool GetState(int sceneID, int index)
@@ -92,7 +140,7 @@ namespace Aijai.Persistence
 
         public static void SetState(PersistentTriggerState obj, bool state = true)
         {
-            SetState(new PropertyName(obj.gameObject.scene.name).GetHashCode(), obj.m_sceneIndex);
+            SetState(new PropertyName(obj.gameObject.scene.name).GetHashCode(), obj.m_saveIndex, state);
         }
 
         public static void SetState(int sceneID, int index, bool state = true)
