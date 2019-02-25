@@ -10,15 +10,12 @@ namespace Aijai.Persistence
     public partial class PersistentTriggerState : MonoBehaviour
     {
         [SerializeField] UnityEvent OnTrigger;
-        
         [SerializeField] UnityEvent OnTriggeredBefore;
-        
-        [SerializeField] internal int m_saveIndex = 0;
-        public int SceneIndex { get { return m_saveIndex; } }
-
+        [SerializeField] int m_saveIndex = 0;
         [SerializeField] int m_respawn;
 
-        [ContextMenu("Debug trigger")]
+        public int SceneIndex { get { return m_saveIndex; } }
+
         public void TriggerState()
         {
             OnTrigger.Invoke();
@@ -34,8 +31,6 @@ namespace Aijai.Persistence
                 if (SceneHistory.Count > 6)
                     SceneHistory.RemoveLast();
             }
-
-            
             
             if (GetState(this))
             {
@@ -43,7 +38,7 @@ namespace Aijai.Persistence
                 {
                     var head = SceneHistory.First.Next;
                     int steps = 0;
-                    while(head != null)
+                    while (head != null)
                     {
                         if (head.Value == sceneID)
                             break;
@@ -65,7 +60,7 @@ namespace Aijai.Persistence
                     OnTriggeredBefore.Invoke();
                 }
             }
-                
+
         }
 
         private void OnValidate()
@@ -75,38 +70,13 @@ namespace Aijai.Persistence
         }
     }
 
+
     public partial class PersistentTriggerState
     {
         static Dictionary<int, HashSet<int>> Memory;
         static LinkedList<int> SceneHistory;
         static MemoryStream Checkpoint;
-
-        public static string DebugString()
-        {
-            var str = new System.Text.StringBuilder();
-
-            str.Append("History: ");
-            foreach (var h in SceneHistory)
-            {
-                str.Append(h);
-                str.Append(';');
-            }
-            str.AppendLine();
-            str.AppendLine("----");
-            foreach (var m in Memory)
-            {
-                str.AppendLine(string.Format("Scene: {0}----", m.Key));
-                str.AppendLine("\t");
-                foreach (var a in m.Value)
-                {
-                    str.Append(a);
-                    str.Append(' ');
-                }
-            }
-
-            return str.ToString();
-        }
-
+        
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialise()
         {
@@ -114,35 +84,7 @@ namespace Aijai.Persistence
             SceneHistory = new LinkedList<int>();
             Checkpoint = new MemoryStream();
         }
-
-        public static bool HasCheckpoint() { return Checkpoint.Length != 0; }
         
-        public static void CreateCheckpoint()
-        {
-            BinaryWriter writer = new BinaryWriter(Checkpoint);
-            try
-            {
-                WriteMemory(writer);
-            }
-            finally
-            {
-                writer.Flush();
-                Checkpoint.Position = 0;
-            }
-        }
-
-        public static void ReturnCheckpoint()
-        {
-            BinaryReader reader = new BinaryReader(Checkpoint);
-            try
-            {
-                ReadMemory(reader);
-            }
-            finally
-            {
-                Checkpoint.Position = 0;
-            }
-        }
 
         public static bool GetState(PersistentTriggerState obj)
         {
@@ -182,8 +124,9 @@ namespace Aijai.Persistence
             }
         }
 
-        const int TriggerStorageVersion = 1;
+        #region IO
 
+        const int TriggerStorageVersion = 1;
         public static void WriteMemory(BinaryWriter writer)
         {
             // Reduce memory
@@ -200,7 +143,6 @@ namespace Aijai.Persistence
                     writer.Write(i);
             }
         }
-
         public static void ReadMemory(BinaryReader reader)
         {
             Memory = new Dictionary<int, HashSet<int>>();
@@ -224,9 +166,80 @@ namespace Aijai.Persistence
                     }
                     break;
             }
-
-            
         }
+
+        #endregion
+
+        #region Checkpoint
+
+        public static bool HasCheckpoint() { return Checkpoint.Length != 0; }
+
+        public static void CreateCheckpoint()
+        {
+            BinaryWriter writer = new BinaryWriter(Checkpoint);
+            try
+            {
+                WriteMemory(writer);
+            }
+            finally
+            {
+                writer.Flush();
+                Checkpoint.Position = 0;
+            }
+        }
+
+        public static void ReturnCheckpoint()
+        {
+            BinaryReader reader = new BinaryReader(Checkpoint);
+            try
+            {
+                ReadMemory(reader);
+            }
+            finally
+            {
+                Checkpoint.Position = 0;
+            }
+        }
+
+        public static void WriteCheckpoint(BinaryWriter writer)
+        {
+            if (HasCheckpoint())
+                throw new System.Exception("Checkpoint has not been created");
+
+            Checkpoint.Seek(0, SeekOrigin.Begin);
+            Checkpoint.CopyTo(writer.BaseStream);
+        }
+
+        #endregion
+
+        #region Debug
+        public static string DebugString()
+        {
+            var str = new System.Text.StringBuilder();
+
+            str.Append("History: ");
+            foreach (var h in SceneHistory)
+            {
+                str.Append(h);
+                str.Append(';');
+            }
+            str.AppendLine();
+            str.AppendLine("----");
+            foreach (var m in Memory)
+            {
+                str.AppendLine(string.Format("Scene: {0}----", m.Key));
+                str.AppendLine("\t");
+                foreach (var a in m.Value)
+                {
+                    str.Append(a);
+                    str.Append(' ');
+                }
+            }
+
+            return str.ToString();
+        }
+        #endregion
+
     }
 
 
