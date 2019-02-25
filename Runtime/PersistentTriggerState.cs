@@ -70,13 +70,8 @@ namespace Aijai.Persistence
 
         private void OnValidate()
         {
-            int[] reservedIndices = (from pts in FindObjectsOfType<PersistentTriggerState>() where (pts != this && pts.gameObject.scene == this.gameObject.scene) select pts.SceneIndex).ToArray();
-            if (reservedIndices.Contains(SceneIndex))
-            {
+            if (m_saveIndex < 0)
                 m_saveIndex = 0;
-                while (reservedIndices.Contains(SceneIndex))
-                    m_saveIndex++;
-            }
         }
     }
 
@@ -85,6 +80,32 @@ namespace Aijai.Persistence
         static Dictionary<int, HashSet<int>> Memory;
         static LinkedList<int> SceneHistory;
         static MemoryStream Checkpoint;
+
+        public static string DebugString()
+        {
+            var str = new System.Text.StringBuilder();
+
+            str.Append("History: ");
+            foreach (var h in SceneHistory)
+            {
+                str.Append(h);
+                str.Append(';');
+            }
+            str.AppendLine();
+            str.AppendLine("----");
+            foreach (var m in Memory)
+            {
+                str.AppendLine(string.Format("Scene: {0}----", m.Key));
+                str.AppendLine("\t");
+                foreach (var a in m.Value)
+                {
+                    str.Append(a);
+                    str.Append(' ');
+                }
+            }
+
+            return str.ToString();
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialise()
@@ -161,11 +182,14 @@ namespace Aijai.Persistence
             }
         }
 
+        const int TriggerStorageVersion = 1;
+
         public static void WriteMemory(BinaryWriter writer)
         {
             // Reduce memory
             Memory = Memory.Where(x => Memory[x.Key].Count > 0).ToDictionary(t => t.Key, t => t.Value);
 
+            writer.Write(TriggerStorageVersion);
             writer.Write(Memory.Count);
             foreach (var key in Memory.Keys)
             {
@@ -180,18 +204,28 @@ namespace Aijai.Persistence
         public static void ReadMemory(BinaryReader reader)
         {
             Memory = new Dictionary<int, HashSet<int>>();
-            int keyCount = reader.ReadInt32();
-            for (var i = 0; i < keyCount; i++)
+
+            int version = reader.ReadInt32();
+
+            switch (version)
             {
-                int key = reader.ReadInt32();
-                int valueCount = reader.ReadInt32();
-                var set = new HashSet<int>();
+                case 1:
+                    int keyCount = reader.ReadInt32();
+                    for (var i = 0; i < keyCount; i++)
+                    {
+                        int key = reader.ReadInt32();
+                        int valueCount = reader.ReadInt32();
+                        var set = new HashSet<int>();
 
-                for (var a = 0; a < valueCount; a++)
-                    set.Add(reader.ReadInt32());
+                        for (var a = 0; a < valueCount; a++)
+                            set.Add(reader.ReadInt32());
 
-                Memory.Add(key, set);
+                        Memory.Add(key, set);
+                    }
+                    break;
             }
+
+            
         }
     }
 
