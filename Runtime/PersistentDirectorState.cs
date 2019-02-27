@@ -10,13 +10,13 @@ namespace Aijai.Persistence
     {
         public override void TriggerState()
         {
-            SetState(this, true);
+            Persistence.SetState(this, true);
             GetComponent<PlayableDirector>().Play();
         }
 
         private void OnEnable()
         {
-            if (GetState(this))
+            if (Persistence.GetState(this))
             {
                 var d = GetComponent<PlayableDirector>();
                 d.time = d.playableAsset.duration;

@@ -17,14 +17,14 @@ namespace Aijai.Persistence
         public override void TriggerState()
         {
             OnTrigger.Invoke();
-            SetState(this, true);
+            Persistence.SetState(this, true);
         }
 
-        static LinkedList<int> SceneHistory = new LinkedList<int>();
+        static LinkedList<PropertyName> SceneHistory = new LinkedList<PropertyName>();
 
         protected virtual void OnEnable()
         {
-            var sceneID = new PropertyName(this.gameObject.scene.name).GetHashCode();
+            var sceneID = this.gameObject.scene.name;
             if (SceneHistory.First == null || SceneHistory.First.Value != sceneID)
             {
                 SceneHistory.AddFirst(sceneID);
@@ -32,7 +32,7 @@ namespace Aijai.Persistence
                     SceneHistory.RemoveLast();
             }
             
-            if (GetState(this))
+            if (Persistence.GetState(this))
             {
                 if (m_respawn > 0)
                 {
@@ -48,7 +48,7 @@ namespace Aijai.Persistence
 
                     if (steps > m_respawn)
                     {
-                        SetState(this, false);
+                        Persistence.SetState(this, false);
                     }
                     else
                     {

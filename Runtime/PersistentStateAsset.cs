@@ -11,12 +11,12 @@ namespace Aijai.Persistence
 
         public bool Poll()
         {
-            return PersistentTriggerStateBase.GetMajorEvent(m_persistentIndex);
+            return Persistence.GetMajorEvent(m_persistentIndex);
         }
 
         public void Toggle()
         {
-            PersistentTriggerStateBase.SetMajorEvent(m_persistentIndex);
+            Persistence.SetMajorEvent(m_persistentIndex);
         }
 
         public int PersistentIndex

@@ -53,11 +53,11 @@ namespace Aijai.Persistence
                 }
                 if (GUILayout.Button("Create checkpoint"))
                 {
-                    PersistentTriggerStateBase.CreateCheckpoint();
+                    Persistence.CreateCheckpoint();
                 }
-                if (PersistentTriggerStateBase.HasCheckpoint() && GUILayout.Button("Restore checkpoint"))
+                if (Persistence.HasCheckpoint() && GUILayout.Button("Restore checkpoint"))
                 {
-                    PersistentTriggerStateBase.ReturnCheckpoint();
+                    Persistence.ReturnCheckpoint();
                 }
             }
 
