@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using System.Linq;
+using L = System.Linq;
 using System.IO;
 
 namespace Aijai.Persistence
@@ -21,14 +21,14 @@ namespace Aijai.Persistence
                 m_saveIndex = 0;
         }
 
-        static Dictionary<int, HashSet<int>> Memory;
+        static Dictionary<int, SortedSet<int>> Memory;
         
         static MemoryStream Checkpoint;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialise()
         {
-            Memory = new Dictionary<int, HashSet<int>>();
+            Memory = new Dictionary<int, SortedSet<int>>();
             Checkpoint = new MemoryStream();
         }
 
@@ -40,7 +40,7 @@ namespace Aijai.Persistence
 
         public static bool GetState(int sceneID, int index)
         {
-            HashSet<int> section;
+            SortedSet<int> section;
             if (Memory.TryGetValue(sceneID, out section))
             {
                 return section.Contains(index);
@@ -55,10 +55,10 @@ namespace Aijai.Persistence
 
         public static void SetState(int sceneID, int index, bool state = true)
         {
-            HashSet<int> section;
+            SortedSet<int> section;
             if (!Memory.TryGetValue(sceneID, out section))
             {
-                section = new HashSet<int>();
+                section = new SortedSet<int>();
                 Memory.Add(sceneID, section);
             }
             if (state)
@@ -77,7 +77,7 @@ namespace Aijai.Persistence
         public static void WriteMemory(BinaryWriter writer)
         {
             // Reduce memory
-            Memory = Memory.Where(x => Memory[x.Key].Count > 0).ToDictionary(t => t.Key, t => t.Value);
+            //Memory = Memory.Where(x => Memory[x.Key].Count > 0).ToDictionary(t => t.Key, t => t.Value);
 
             writer.Write(TriggerStorageVersion);
             writer.Write(Memory.Count);
@@ -85,29 +85,49 @@ namespace Aijai.Persistence
             {
                 writer.Write(key);
                 var set = Memory[key];
-                writer.Write(set.Count);
-                foreach (var i in set)
-                    writer.Write(i);
+
+                writer.Write(set.Max);
+
+                int empty = 0;
+                foreach (var s in set)
+                {
+                    while(empty < s)
+                    {
+                        writer.Write(false);
+                        empty++;
+                    }
+                    writer.Write(true);
+                    empty = s+1;
+                }
             }
         }
         public static void ReadMemory(BinaryReader reader)
         {
-            Memory = new Dictionary<int, HashSet<int>>();
+            Memory = new Dictionary<int, SortedSet<int>>();
 
             int version = reader.ReadInt32();
 
             switch (version)
             {
                 case 1:
+                    Debug.Log("import");
                     int keyCount = reader.ReadInt32();
                     for (var i = 0; i < keyCount; i++)
                     {
                         int key = reader.ReadInt32();
                         int valueCount = reader.ReadInt32();
-                        var set = new HashSet<int>();
+                        var set = new SortedSet<int>();
+                        Debug.Log(valueCount);
 
-                        for (var a = 0; a < valueCount; a++)
-                            set.Add(reader.ReadInt32());
+                        for (var a = 0; a <= valueCount; a++)
+                        {
+                            if (reader.ReadBoolean())
+                            {
+                                Debug.Log(a);
+                                set.Add(a);
+                            }
+                                
+                        }
 
                         Memory.Add(key, set);
                     }
